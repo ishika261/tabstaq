@@ -109,17 +109,30 @@ To use one: **Preferences → Import →** pick the file **→ Save**.
 
 ```
 tabstaq/
-├── manifest.json     # MV3 manifest: permissions, commands, action, icons
-├── background.js     # service worker: grouping engine, commands, messaging
-├── identify.js       # pure config + tab→group-name logic (no Chrome APIs)
-├── popup.html/.js    # toolbar popup: actions, preview, search, shortcuts
-├── options.html/.js  # Preferences page: rules, keywords, colors, import/export
-├── icons/            # 16/48/128px extension icons
-└── presets/          # importable starter configs
+├── manifest.json      # MV3 manifest: permissions, commands, action, icons
+├── background.js      # service worker: wraps the engine with chrome.* + messaging
+├── identify.js        # pure config + URL→name extraction (no Chrome APIs)
+├── grouping.js        # pure grouping engine: classifyTab, computeBuckets
+├── grouping.test.js   # unit tests for the engine (node --test)
+├── popup.html/.js     # toolbar popup: actions, preview, search, shortcuts
+├── options.html/.js   # Preferences page: rules, keywords, colors, import/export
+├── icons/             # 16/48/128px icons + generate-icons.py
+└── presets/           # importable starter configs
 ```
 
-`identify.js` is intentionally free of Chrome APIs so the grouping logic is pure
-and testable in plain Node.
+`identify.js` and `grouping.js` are intentionally free of Chrome APIs, so the
+grouping logic is pure and unit-testable in plain Node.
+
+## Tests
+
+The grouping engine is covered by unit tests using Node's built-in runner — no
+dependencies to install:
+
+```bash
+node --test
+```
+
+Run them before committing any change to `identify.js` or `grouping.js`.
 
 ## Permissions
 

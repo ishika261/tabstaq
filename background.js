@@ -15,7 +15,8 @@
 //
 // All matching is config-driven (identify.js); nothing is hardcoded.
 
-import { DEFAULT_CONFIG, extractId, fixedGroup } from './identify.js';
+import { DEFAULT_CONFIG } from './identify.js';
+import { computeBuckets, buildUmbrellas } from './grouping.js';
 
 // Keys under which the editable config lives in chrome.storage.sync.
 const CONFIG_KEYS = ['excludedHosts', 'extractRules', 'stripSuffixes', 'fixedHostGroups', 'projects'];
@@ -132,73 +133,8 @@ async function targetWindowId(explicitWindowId) {
   return win.id;
 }
 
-// Classify a single tab into its candidate group, recording WHY (kind) so a
-// two-pass step can re-route abstraction singletons to their site bucket.
-// Returns { key, kind, site } or null.
-//   kind 'keyword'     -> final, never re-routed.
-//   kind 'abstraction' -> club by name IF >=minGroupSize, else fall to `site`.
-//   kind 'site'        -> the tab only matched a fixed-host rule.
-// `site` is the fixed-host group name if any (used as the fallback bucket).
-function classifyTab(tab, umbrellas, config) {
-  const hay = ((tab.url || '') + ' ' + (tab.title || '')).toLowerCase();
-  const site = fixedGroup(tab.url || '', config); // may be null
-
-  // 1. Keyword override — wins outright.
-  for (const u of umbrellas) {
-    if (hay.includes(u.lower)) return { key: u.token, kind: 'keyword', site };
-  }
-  // 2. Abstraction — extracted + suffix-stripped name.
-  const res = extractId(tab.url || '', config);
-  if (res) return { key: res.id, kind: 'abstraction', site };
-  // 3. Site only.
-  if (site) return { key: site, kind: 'site', site };
-  return null;
-}
-
-// Two-pass bucketing shared by grouping + preview.
-// Returns Map<groupName, tabObj[]> for groups that meet minGroupSize.
-// skipGrouped: when true, tabs already in ANY tab group are ignored, so existing
-//   (incl. hand-made "custom") groups are never disturbed — grouping only acts on
-//   loose tabs. Set false for actions that must see every tab (e.g. close-group).
-// existingNames: plain names of groups that already exist in the window. A bucket
-//   matching one of these survives even with a single tab, so a lone loose tab can
-//   JOIN an existing group (and won't be re-routed to a site fallback).
-function computeBuckets(tabs, umbrellas, config, minGroupSize, skipGrouped = false, existingNames = new Set()) {
-  // Pass 1: classify every (non-pinned) tab and tally abstraction names.
-  const classified = [];
-  const absCount = new Map(); // abstraction name -> tab count
-  for (const tab of tabs) {
-    if (tab.pinned) continue;
-    if (skipGrouped && tab.groupId !== undefined && tab.groupId !== -1) continue;
-    const c = classifyTab(tab, umbrellas, config);
-    if (!c) continue;
-    classified.push({ tab, ...c });
-    if (c.kind === 'abstraction') absCount.set(c.key, (absCount.get(c.key) || 0) + 1);
-  }
-
-  // Pass 2: assign final group. An abstraction name that didn't reach
-  // minGroupSize is an orphan -> re-route to its site bucket -- UNLESS a group of
-  // that name already exists, in which case keep the name so the tab joins it.
-  const buckets = new Map();
-  for (const item of classified) {
-    let name = item.key;
-    if (item.kind === 'abstraction'
-        && absCount.get(item.key) < minGroupSize
-        && !existingNames.has(item.key)) {
-      if (!item.site) continue; // lonely and no site -> leave ungrouped
-      name = item.site;
-    }
-    if (!buckets.has(name)) buckets.set(name, []);
-    buckets.get(name).push(item.tab);
-  }
-
-  // Keep a bucket if it meets the size threshold OR a group of that name already
-  // exists (so a single tab can merge into it).
-  for (const [name, arr] of [...buckets]) {
-    if (arr.length < minGroupSize && !existingNames.has(name)) buckets.delete(name);
-  }
-  return buckets;
-}
+// The pure grouping engine (classifyTab/computeBuckets) lives in grouping.js so
+// it can be unit-tested without Chrome APIs. See grouping.test.js.
 
 /**
  * @param {number} [windowId]
@@ -211,9 +147,7 @@ async function groupTabs(windowId) {
   const tabs = await chrome.tabs.query({ windowId: winId });
 
   // Custom keywords take priority over config projects.
-  const umbrellas = [...customKeywords, ...(config.projects || [])]
-    .filter(Boolean)
-    .map((t) => ({ token: t, lower: t.toLowerCase() }));
+  const umbrellas = buildUmbrellas(customKeywords, config);
 
   // Existing groups in this window, by plain name (titles may carry an emoji).
   const existingGroups = await chrome.tabGroups.query({ windowId: winId });
@@ -261,24 +195,53 @@ async function planGroups(windowId) {
   const winId = await targetWindowId(windowId);
   const tabs = await chrome.tabs.query({ windowId: winId });
 
-  const umbrellas = [...customKeywords, ...(config.projects || [])]
-    .filter(Boolean)
-    .map((t) => ({ token: t, lower: t.toLowerCase() }));
+  const umbrellas = buildUmbrellas(customKeywords, config);
 
-  // Preview mirrors grouping: only loose tabs, and a lone tab may join an
-  // existing group of the same name.
+  // Existing groups in this window, with live tab counts.
   const existingGroups = await chrome.tabGroups.query({ windowId: winId });
   const existingNames = new Set(existingGroups.map((g) => plainTitle(g.title)));
-  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true, existingNames);
-  const liveNames = [...bucketsTabs.keys()];
-  const colors = assignColors(liveNames, colorMap);
+  const countInGroup = new Map();
+  for (const t of tabs) {
+    if (t.groupId === undefined || t.groupId === -1) continue;
+    countInGroup.set(t.groupId, (countInGroup.get(t.groupId) || 0) + 1);
+  }
 
-  return liveNames
-    .map((name) => ({
+  // What loose tabs would add (new groups, or tabs joining an existing one).
+  const pending = computeBuckets(tabs, umbrellas, config, minGroupSize, true, existingNames);
+
+  // Build the display list: every existing group + any brand-new pending group.
+  // `added` = how many loose tabs would join; `isNew` = group doesn't exist yet.
+  const rows = new Map(); // name -> { name, count, added, isNew, color? }
+  for (const g of existingGroups) {
+    const name = plainTitle(g.title);
+    rows.set(name, {
       name,
-      label: labelFor(name, emojiMap, autoEmoji),
-      color: colors.get(name),
-      count: bucketsTabs.get(name).length
+      count: countInGroup.get(g.id) || 0,
+      added: 0,
+      isNew: false,
+      color: g.color
+    });
+  }
+  for (const [name, arr] of pending) {
+    if (rows.has(name)) {
+      rows.get(name).added = arr.length;            // joining an existing group
+    } else {
+      rows.set(name, { name, count: arr.length, added: arr.length, isNew: true });
+    }
+  }
+
+  // Colors: keep each existing group's real color; assign for new ones.
+  const newNames = [...rows.values()].filter((r) => r.isNew).map((r) => r.name);
+  const newColors = assignColors(newNames, colorMap);
+
+  return [...rows.values()]
+    .map((r) => ({
+      name: r.name,
+      label: labelFor(r.name, emojiMap, autoEmoji),
+      color: r.color || newColors.get(r.name),
+      count: r.count,
+      added: r.added,
+      isNew: r.isNew
     }))
     .sort((a, b) => b.count - a.count);
 }
@@ -395,9 +358,7 @@ async function closeGroupByName(windowId, name) {
   const winId = await targetWindowId(windowId);
   const tabs = await chrome.tabs.query({ windowId: winId });
 
-  const umbrellas = [...customKeywords, ...(config.projects || [])]
-    .filter(Boolean)
-    .map((t) => ({ token: t, lower: t.toLowerCase() }));
+  const umbrellas = buildUmbrellas(customKeywords, config);
 
   // Use the same two-pass bucketing the preview/grouping use, so "close group X"
   // closes exactly the tabs that the chip for X represents.

@@ -20,16 +20,18 @@ so the dev loop is intentionally simple — no build step, no `npm install`.
 
 | File | Role |
 |---|---|
-| `identify.js` | Pure logic + config (no Chrome APIs). The grouping brain. |
-| `background.js` | Service worker: engine, commands, message router. |
+| `identify.js` | Pure config + URL→name extraction (no Chrome APIs). |
+| `grouping.js` | Pure grouping engine (`classifyTab`, `computeBuckets`). |
+| `grouping.test.js` | Unit tests for the engine (Node's built-in runner). |
+| `background.js` | Service worker: wraps the engine with `chrome.*`, commands, messaging. |
 | `popup.html` / `popup.js` | Toolbar popup UI. |
 | `options.html` / `options.js` | Preferences page. |
 | `icons/generate-icons.py` | Regenerates the PNG icons (stdlib only). |
 | `presets/` | Importable starter configs. |
 
-**Design rule:** keep `identify.js` free of Chrome APIs. All grouping decisions
-live there as plain functions over plain data, which keeps them pure and easy to
-test. `background.js` is the only file that touches `chrome.*`.
+**Design rule:** keep `identify.js` and `grouping.js` free of Chrome APIs. All
+grouping decisions live there as plain functions over plain data, so they're
+pure and unit-testable. `background.js` is the only file that touches `chrome.*`.
 
 ## Test the logic
 
