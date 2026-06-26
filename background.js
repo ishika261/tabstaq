@@ -147,12 +147,16 @@ function classifyTab(tab, umbrellas, config) {
 
 // Two-pass bucketing shared by grouping + preview.
 // Returns Map<groupName, tabObj[]> for groups that meet minGroupSize.
-function computeBuckets(tabs, umbrellas, config, minGroupSize) {
+// skipGrouped: when true, tabs already in ANY tab group are ignored, so existing
+//   (incl. hand-made "custom") groups are never disturbed — grouping only acts on
+//   loose tabs. Set false for actions that must see every tab (e.g. close-group).
+function computeBuckets(tabs, umbrellas, config, minGroupSize, skipGrouped = false) {
   // Pass 1: classify every (non-pinned) tab and tally abstraction names.
   const classified = [];
   const absCount = new Map(); // abstraction name -> tab count
   for (const tab of tabs) {
     if (tab.pinned) continue;
+    if (skipGrouped && tab.groupId !== undefined && tab.groupId !== -1) continue;
     const c = classifyTab(tab, umbrellas, config);
     if (!c) continue;
     classified.push({ tab, ...c });
@@ -195,7 +199,8 @@ async function groupTabs(windowId) {
     .map((t) => ({ token: t, lower: t.toLowerCase() }));
 
   // group name -> tab[] (two-pass: abstraction first, site groups absorb orphans).
-  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize);
+  // skipGrouped=true: only act on loose tabs, leaving existing/custom groups intact.
+  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true);
   const buckets = new Map(); // group name -> [tabId, ...]
   for (const [name, arr] of bucketsTabs) buckets.set(name, arr.map((t) => t.id));
 
@@ -243,7 +248,8 @@ async function planGroups(windowId) {
     .filter(Boolean)
     .map((t) => ({ token: t, lower: t.toLowerCase() }));
 
-  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize);
+  // Preview mirrors grouping: only loose tabs (skipGrouped=true).
+  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true);
   const liveNames = [...bucketsTabs.keys()];
   const colors = assignColors(liveNames, colorMap);
 
