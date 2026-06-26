@@ -35,10 +35,12 @@ const PRESETS = {
       'mail.google.com', 'docs.google.com', 'drive.google.com'
     ],
     extractRules: [
-      // Group code-host tabs by repository name.
-      { host: 'github.com', pattern: '^/[^/]+/([^/?#]+)' },
-      { host: 'gitlab.com', pattern: '^/[^/]+/([^/?#]+)' },
-      { host: 'bitbucket.org', pattern: '^/[^/]+/([^/?#]+)' }
+      // Group code-host tabs by repository name. The pattern matches the host
+      // then "/owner/repo", capturing the repo. (Rules run against
+      // host+path+query, so anchor on the host rather than "^/".)
+      { host: 'github.com', pattern: 'github\\.com/[^/]+/([^/?#]+)' },
+      { host: 'gitlab.com', pattern: 'gitlab\\.com/[^/]+/([^/?#]+)' },
+      { host: 'bitbucket.org', pattern: 'bitbucket\\.org/[^/]+/([^/?#]+)' }
     ],
     // Common code-package role suffixes so e.g. MyAppApi + MyApp group together.
     stripSuffixes: [
@@ -132,8 +134,10 @@ function extractId(url, config) {
   const host = u.hostname.toLowerCase();
   if ((config.excludedHosts || []).some((h) => host === h.toLowerCase())) return null;
 
-  // Match path + decoded query so rules can target query params, e.g. ?path=/x/Y.
-  const hay = u.pathname + (u.search ? '?' + safeDecode(u.search) : '');
+  // Match against host + path + decoded query, so a rule's capture group can
+  // target an id anywhere in the URL: a subdomain (e.g. an account number),
+  // a path segment, or a query param.
+  const hay = u.hostname + u.pathname + (u.search ? '?' + safeDecode(u.search) : '');
 
   for (const rule of config.extractRules || []) {
     if (!rule.host || !host.includes(rule.host.toLowerCase())) continue;

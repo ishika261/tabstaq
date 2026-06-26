@@ -20,15 +20,15 @@
   "extractRules": [
     {
       "host": "github.com",
-      "pattern": "^/[^/]+/([^/?#]+)"
+      "pattern": "github\\.com/[^/]+/([^/?#]+)"
     },
     {
       "host": "gitlab.com",
-      "pattern": "^/[^/]+/([^/?#]+)"
+      "pattern": "gitlab\\.com/[^/]+/([^/?#]+)"
     },
     {
       "host": "bitbucket.org",
-      "pattern": "^/[^/]+/([^/?#]+)"
+      "pattern": "bitbucket\\.org/[^/]+/([^/?#]+)"
     }
   ],
   "stripSuffixes": [

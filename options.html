@@ -325,8 +325,8 @@
           <p class="sub">Pull a group name automatically out of a tab's URL.</p>
           <label for="extractRules">One per line &nbsp;<code>host | regex</code></label>
           <div class="hint">
-            On a matching <code>host</code>, the <code>regex</code> runs against path+query; capture group 1 is the name. First match wins.<br>
-            <code>github.com | ^/[^/]+/([^/?#]+)</code><br>
+            On a matching <code>host</code>, the <code>regex</code> runs against the URL's host + path + query; capture group 1 is the name. First match wins.<br>
+            <code>github.com | github\.com/[^/]+/([^/?#]+)</code><br>
             <code>jira.company.com | /browse/([A-Z]+)-</code>
           </div>
           <textarea id="extractRules" class="md"></textarea>
