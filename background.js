@@ -103,6 +103,16 @@ function hashIndex2(name) {
   return h;
 }
 
+// Strip a leading emoji prefix from a group title to recover its plain name.
+// Labels are "<emoji> <name>"; if the first whitespace-delimited token has no
+// letters/digits, it's the emoji and we drop it. "🚀 MyProject" -> "MyProject";
+// "CR Review" -> "CR Review" (first token has letters, kept).
+function plainTitle(title) {
+  const sp = title.indexOf(' ');
+  if (sp > 0 && !/[A-Za-z0-9]/.test(title.slice(0, sp))) return title.slice(sp + 1);
+  return title;
+}
+
 // Recover the plain group name from a possibly-decorated existing title, by
 // matching against the set of names we're about to assign. Falls back to the
 // raw title. This lets us reuse a group titled "🚀 MyProject" for bucket
@@ -150,7 +160,10 @@ function classifyTab(tab, umbrellas, config) {
 // skipGrouped: when true, tabs already in ANY tab group are ignored, so existing
 //   (incl. hand-made "custom") groups are never disturbed — grouping only acts on
 //   loose tabs. Set false for actions that must see every tab (e.g. close-group).
-function computeBuckets(tabs, umbrellas, config, minGroupSize, skipGrouped = false) {
+// existingNames: plain names of groups that already exist in the window. A bucket
+//   matching one of these survives even with a single tab, so a lone loose tab can
+//   JOIN an existing group (and won't be re-routed to a site fallback).
+function computeBuckets(tabs, umbrellas, config, minGroupSize, skipGrouped = false, existingNames = new Set()) {
   // Pass 1: classify every (non-pinned) tab and tally abstraction names.
   const classified = [];
   const absCount = new Map(); // abstraction name -> tab count
@@ -164,11 +177,14 @@ function computeBuckets(tabs, umbrellas, config, minGroupSize, skipGrouped = fal
   }
 
   // Pass 2: assign final group. An abstraction name that didn't reach
-  // minGroupSize is an orphan -> re-route to its site bucket if it has one.
+  // minGroupSize is an orphan -> re-route to its site bucket -- UNLESS a group of
+  // that name already exists, in which case keep the name so the tab joins it.
   const buckets = new Map();
   for (const item of classified) {
     let name = item.key;
-    if (item.kind === 'abstraction' && absCount.get(item.key) < minGroupSize) {
+    if (item.kind === 'abstraction'
+        && absCount.get(item.key) < minGroupSize
+        && !existingNames.has(item.key)) {
       if (!item.site) continue; // lonely and no site -> leave ungrouped
       name = item.site;
     }
@@ -176,9 +192,10 @@ function computeBuckets(tabs, umbrellas, config, minGroupSize, skipGrouped = fal
     buckets.get(name).push(item.tab);
   }
 
-  // Keep only groups that meet the threshold.
+  // Keep a bucket if it meets the size threshold OR a group of that name already
+  // exists (so a single tab can merge into it).
   for (const [name, arr] of [...buckets]) {
-    if (arr.length < minGroupSize) buckets.delete(name);
+    if (arr.length < minGroupSize && !existingNames.has(name)) buckets.delete(name);
   }
   return buckets;
 }
@@ -198,20 +215,20 @@ async function groupTabs(windowId) {
     .filter(Boolean)
     .map((t) => ({ token: t, lower: t.toLowerCase() }));
 
+  // Existing groups in this window, by plain name (titles may carry an emoji).
+  const existingGroups = await chrome.tabGroups.query({ windowId: winId });
+  const groupByName = new Map(existingGroups.map((g) => [plainTitle(g.title), g.id]));
+  const existingNames = new Set(groupByName.keys());
+
   // group name -> tab[] (two-pass: abstraction first, site groups absorb orphans).
   // skipGrouped=true: only act on loose tabs, leaving existing/custom groups intact.
-  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true);
+  // existingNames lets a single loose tab join a group that already exists.
+  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true, existingNames);
   const buckets = new Map(); // group name -> [tabId, ...]
   for (const [name, arr] of bucketsTabs) buckets.set(name, arr.map((t) => t.id));
 
   const liveNames = [...buckets.keys()];
   const colors = assignColors(liveNames, colorMap);
-  const knownNames = new Set(liveNames);
-
-  // Reuse existing groups by their PLAIN name (titles may carry an emoji prefix).
-  const existingGroups = await chrome.tabGroups.query({ windowId: winId });
-  const groupByName = new Map(
-    existingGroups.map((g) => [plainNameOf(g.title, knownNames), g.id]));
 
   let grouped = 0;
   let groupCount = 0;
@@ -248,8 +265,11 @@ async function planGroups(windowId) {
     .filter(Boolean)
     .map((t) => ({ token: t, lower: t.toLowerCase() }));
 
-  // Preview mirrors grouping: only loose tabs (skipGrouped=true).
-  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true);
+  // Preview mirrors grouping: only loose tabs, and a lone tab may join an
+  // existing group of the same name.
+  const existingGroups = await chrome.tabGroups.query({ windowId: winId });
+  const existingNames = new Set(existingGroups.map((g) => plainTitle(g.title)));
+  const bucketsTabs = computeBuckets(tabs, umbrellas, config, minGroupSize, true, existingNames);
   const liveNames = [...bucketsTabs.keys()];
   const colors = assignColors(liveNames, colorMap);
 
