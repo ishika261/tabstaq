@@ -35,21 +35,25 @@ async function renderPreview() {
   const box = $('preview');
   if (res.error || !res.plan) { box.innerHTML = ''; return; }
   if (res.plan.length === 0) {
-    box.innerHTML = '<div class="empty">No groupable tabs in this window.</div>';
+    box.innerHTML = '<div class="empty">No groups yet — open some related tabs and hit Group.</div>';
     return;
   }
   const chips = res.plan.map((g) => {
     const dot = SWATCH[g.color] || '#5f6368';
-    return `<span class="chip" data-name="${escapeHtml(g.name)}" data-count="${g.count}">` +
+    // "+N" badge when loose tabs would join/create; counts already include them.
+    const addBadge = g.added ? `<span class="add">+${g.added}</span>` : '';
+    return `<span class="chip${g.isNew ? ' new' : ''}" data-name="${escapeHtml(g.name)}" data-count="${g.count}">` +
       `<span class="swatch" style="background:${dot}"></span>` +
       `<span class="cname">${escapeHtml(g.label)}</span>` +
+      addBadge +
       `<span class="n">${g.count}</span>` +
       `<button class="x" title="Close all ${g.count} tabs in this group" aria-label="Close group">✕</button>` +
       `</span>`;
   }).join('');
   const groups = res.plan.length;
-  const tabs = res.plan.reduce((sum, g) => sum + g.count, 0);
-  const head = `${groups} group${groups > 1 ? 's' : ''} · ${tabs} tab${tabs > 1 ? 's' : ''}`;
+  const pending = res.plan.reduce((s, g) => s + (g.added || 0), 0);
+  const head = `${groups} group${groups > 1 ? 's' : ''}` +
+    (pending ? ` · ${pending} tab${pending > 1 ? 's' : ''} to add` : '');
   box.innerHTML = `<div class="label">${head}</div><div class="chips">${chips}</div>`;
   wireChips();
 }

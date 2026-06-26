@@ -75,6 +75,10 @@
     .chip .n { background: rgba(0,0,0,.06); border-radius: 5px; padding: 1px 6px;
       font-size: 11px; color: var(--muted); }
     @media (prefers-color-scheme: dark) { .chip .n { background: rgba(255,255,255,.08); } }
+    /* "+N tabs would join" badge, and a dashed border for not-yet-created groups */
+    .chip .add { background: var(--accent); color: #fff; border-radius: 5px;
+      padding: 1px 5px; font-size: 10.5px; font-weight: 600; }
+    .chip.new { border-style: dashed; }
     /* × to close a whole group — hidden until the chip is tapped (slides in) */
     .chip .x {
       display: inline-flex; align-items: center; justify-content: center;
