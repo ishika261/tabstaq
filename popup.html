@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f6f6f7;
+      --border: #e8e8ea;
+      --text: #1a1a1e;
+      --muted: #8a8a93;
+      --ink: #1a1a1e;        /* near-black primary */
+      --accent: #e8821e;     /* warm amber accent */
+      --accent-soft: #fdf0dd;
+      --radius: 9px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1f; --surface: #262629; --border: #323236;
+        --text: #ececee; --muted: #8e8e96; --ink: #ececee;
+        --accent: #f59e0b; --accent-soft: #3a2e18;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font: 13px/1.5 -apple-system, "SF Pro Text", Segoe UI, Roboto, sans-serif;
+      width: 312px; margin: 0; background: var(--bg); color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      display: flex; align-items: center; gap: 9px;
+      padding: 14px 16px 12px;
+    }
+    .mark { width: 22px; height: 22px; position: relative; flex: none; }
+    .mark i { position: absolute; width: 13px; height: 11px; border-radius: 3px; }
+    .mark i:nth-child(1) { left: 0;  top: 8px; background: #fae0aa; }
+    .mark i:nth-child(2) { left: 4px; top: 4px; background: #f5b95a; }
+    .mark i:nth-child(3) { left: 8px; top: 0;  background: #e8821e; }
+    .mark i:nth-child(3)::before {
+      content: ""; position: absolute; left: 2px; top: -2px;
+      width: 6px; height: 3px; border-radius: 2px 2px 0 0; background: #e8821e;
+    }
+    header h1 { font-size: 14px; margin: 0; font-weight: 650; letter-spacing: -.2px; flex: 1; }
+    .body { padding: 0 14px 12px; }
+
+    input#q {
+      width: 100%; padding: 9px 11px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 13px;
+    }
+    input#q::placeholder { color: var(--muted); }
+    input#q:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+    #results { max-height: 216px; overflow-y: auto; margin-top: 6px; }
+    .tab {
+      display: flex; align-items: center; gap: 9px; padding: 7px 9px;
+      border-radius: 7px; cursor: pointer;
+    }
+    .tab:hover, .tab.sel { background: var(--surface); }
+    .tab img { width: 15px; height: 15px; flex: none; border-radius: 3px; }
+    .tab .ti { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tab .host { color: var(--muted); font-size: 11px; }
+
+    .label { font-size: 11px; font-weight: 600; letter-spacing: .3px;
+      text-transform: uppercase; color: var(--muted); margin: 14px 0 7px; }
+    #preview { margin-top: 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 5px 4px 10px; border-radius: 7px;
+      font-size: 12px; font-weight: 550;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    }
+    .chip { cursor: pointer; overflow: hidden; }
+    .chip .swatch { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .chip .n { background: rgba(0,0,0,.06); border-radius: 5px; padding: 1px 6px;
+      font-size: 11px; color: var(--muted); }
+    @media (prefers-color-scheme: dark) { .chip .n { background: rgba(255,255,255,.08); } }
+    /* × to close a whole group — hidden until the chip is tapped (slides in) */
+    .chip .x {
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; background: #e5645a; color: #fff; border: 0;
+      font-size: 12px; line-height: 1; border-radius: 5px;
+      width: 0; height: 16px; padding: 0; margin-left: 0;
+      opacity: 0; overflow: hidden;
+      transition: width .16s ease, opacity .16s ease, margin-left .16s ease;
+    }
+    .chip.revealed .x { width: 16px; opacity: 1; margin-left: 3px; }
+    .chip .x:hover { filter: brightness(1.08); }
+
+    button {
+      border: 0; cursor: pointer; font-family: inherit;
+      transition: background .12s, border-color .12s, color .12s;
+    }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin-top: 12px; }
+    .grid button {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 11px 4px 8px; background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: 11px;
+    }
+    .grid button svg { width: 18px; height: 18px; stroke: currentColor; fill: none;
+      stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .grid button .cap { font-size: 10.5px; font-weight: 550; color: var(--muted); letter-spacing: .1px; }
+    .grid button:hover { background: var(--surface); border-color: var(--text); }
+    .grid button:hover .cap { color: var(--text); }
+    /* Group = primary action: subtle accent fill, still a tile. */
+    #group { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+    #group .cap { color: var(--accent); }
+    #group:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    #group:hover .cap { color: #fff; }
+    #dedupe:hover { border-color: #e5645a; color: #e5645a; }
+    #dedupe:hover .cap { color: #e5645a; }
+
+    #status { margin-top: 10px; color: var(--muted); min-height: 16px; font-size: 12px; }
+    .empty { color: var(--muted); font-size: 12px; }
+
+    footer {
+      display: flex; align-items: center; justify-content: center; gap: 22px;
+      padding: 11px 16px; border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); cursor: pointer; font-size: 12px; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px; }
+    footer a:hover { color: var(--accent); }
+    .fico { width: 13px; height: 13px; stroke: currentColor; fill: none;
+      stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .credit {
+      text-align: center; font-size: 11.5px; color: var(--muted);
+      padding: 9px 16px 11px;
+    }
+    .credit .heart { color: #e5645a; }
+    .credit a { color: var(--muted); text-decoration: none; font-weight: 600; }
+    .credit a:hover { color: var(--accent); }
+
+    /* Shortcuts panel */
+    #shortcuts {
+      padding: 10px 16px 12px; border-top: 1px solid var(--border);
+    }
+    #shortcuts.hidden { display: none; }
+    .sc-head { display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px; }
+    .sc-head span { font-size: 11px; font-weight: 600; letter-spacing: .4px;
+      text-transform: uppercase; color: var(--muted); }
+    #scClose {
+      border: 0; background: transparent; color: var(--muted); cursor: pointer;
+      font-size: 14px; line-height: 1; padding: 4px 6px; border-radius: 6px;
+    }
+    #scClose:hover { background: var(--surface); color: var(--text); }
+    #scToggle.active { color: var(--accent); }
+    .sc-row { display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 0; font-size: 12px; color: var(--text); }
+    .sc-row .lbl { color: var(--muted); }
+    kbd {
+      font-family: var(--font, inherit); font-size: 11px; font-weight: 600;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 5px; padding: 2px 6px; color: var(--text);
+    }
+    kbd.unset { color: var(--accent); cursor: pointer; border-style: dashed; background: transparent; }
+    kbd.unset:hover { background: var(--accent-soft); }
+    .sc-customize { display: block; margin-top: 8px; font-size: 11.5px;
+      color: var(--accent); cursor: pointer; text-decoration: none; }
+    .sc-customize:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="mark"><i></i><i></i><i></i></span>
+    <h1>Tabstaq</h1>
+  </header>
+  <div class="body">
+    <input id="q" type="text" placeholder="Search tabs…  (↵ to jump)" autocomplete="off">
+    <div id="results"></div>
+
+    <div id="preview"></div>
+
+    <div class="grid">
+      <button id="group" title="Group tabs by project (⌘⇧0)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="cap">Group</span>
+      </button>
+      <button id="ungroup" title="Ungroup all tabs (⌘⇧9)">
+        <svg viewBox="0 0 24 24"><path d="M5 5h5v5H5zM14 14h5v5h-5z"/><path d="M14 5h5M19 5v5M5 14v5M5 19h5"/></svg>
+        <span class="cap">Ungroup</span>
+      </button>
+      <button id="dedupe" title="Close duplicate tabs">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="2"/><path d="M9 19h9a2 2 0 0 0 2-2V9"/></svg>
+        <span class="cap">Dedupe</span>
+      </button>
+      <button id="collapse" title="Collapse all groups (⌘⇧8)">
+        <svg viewBox="0 0 24 24"><path d="M8 4l4 4 4-4M8 20l4-4 4 4"/></svg>
+        <span class="cap">Collapse</span>
+      </button>
+      <button id="expand" title="Expand all groups (⌘⇧7)">
+        <svg viewBox="0 0 24 24"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
+        <span class="cap">Expand</span>
+      </button>
+    </div>
+    <div id="status"></div>
+  </div>
+  <div id="shortcuts" class="hidden">
+    <div class="sc-head">
+      <span>Keyboard shortcuts</span>
+      <button id="scClose" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="sc-row"><span class="lbl">Open Tabstaq</span><kbd data-key="_execute_action"></kbd></div>
+    <div class="sc-row"><span class="lbl">Group tabs</span><kbd data-key="group-tabs"></kbd></div>
+    <div class="sc-row"><span class="lbl">Ungroup all</span><kbd data-key="ungroup-tabs"></kbd></div>
+    <div class="sc-row"><span class="lbl">Collapse all</span><kbd data-key="collapse-groups"></kbd></div>
+    <div class="sc-row"><span class="lbl">Expand all</span><kbd data-key="expand-groups"></kbd></div>
+    <div class="sc-row"><span class="lbl">Search &amp; jump</span><kbd>Type above · ↑ ↓ · ↵</kbd></div>
+    <a class="sc-customize" id="customizeKeys">Customize shortcuts…</a>
+  </div>
+  <footer>
+    <a id="opts"><svg class="fico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5l1.4 2.3a7.6 7.6 0 0 1 2 .8l2.6-.6 1.5 2.6-1.8 2a7.6 7.6 0 0 1 0 2.2l1.8 2-1.5 2.6-2.6-.6a7.6 7.6 0 0 1-2 .8L12 21.5l-1.4-2.3a7.6 7.6 0 0 1-2-.8l-2.6.6L4.5 16.4l1.8-2a7.6 7.6 0 0 1 0-2.2l-1.8-2 1.5-2.6 2.6.6a7.6 7.6 0 0 1 2-.8z"/></svg>Preferences</a>
+    <a id="scToggle"><svg class="fico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h.01M11 9h.01M15 9h.01M7 13h.01M17 13H11"/></svg>Shortcuts</a>
+  </footer>
+  <div class="credit">made with <span class="heart">♥</span> by <a href="https://github.com/ishika261" target="_blank" rel="noopener">ishika261</a></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

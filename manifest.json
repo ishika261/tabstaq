@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Tabstaq",
+  "version": "1.2.0",
+  "author": "akihsi",
+  "description": "Smart tab grouping by project/service across domains — configurable rules, colors, emojis, search, collapse, and duplicate cleanup.",
+  "permissions": ["tabs", "tabGroups", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "commands": {
+    "_execute_action": {
+      "description": "Open the Tabstaq popup"
+    },
+    "group-tabs": {
+      "suggested_key": { "default": "Ctrl+Shift+0", "mac": "MacCtrl+G" },
+      "description": "Group tabs in the current window"
+    },
+    "ungroup-tabs": {
+      "suggested_key": { "default": "Ctrl+Shift+9", "mac": "MacCtrl+U" },
+      "description": "Ungroup all tabs"
+    },
+    "collapse-groups": {
+      "suggested_key": { "default": "Ctrl+Shift+8", "mac": "MacCtrl+C" },
+      "description": "Collapse all tab groups"
+    },
+    "expand-groups": {
+      "suggested_key": { "default": "Ctrl+Shift+7", "mac": "MacCtrl+E" },
+      "description": "Expand all tab groups"
+    }
+  },
+  "action": {
+    "default_title": "Tabstaq — group tabs by project",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

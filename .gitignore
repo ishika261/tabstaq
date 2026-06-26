@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Packaging
+*.zip
+tabstaq-*.zip
+
+# Logs
+*.log

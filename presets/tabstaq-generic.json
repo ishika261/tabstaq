@@ -1,0 +1,51 @@
+{
+  "_app": "Tabstaq",
+  "_version": 1,
+  "autoGroup": false,
+  "collapseOnGroup": true,
+  "minGroupSize": 2,
+  "autoEmoji": false,
+  "customKeywords": [],
+  "colorMap": {},
+  "emojiMap": {},
+  "excludedHosts": [
+    "google.com",
+    "www.google.com",
+    "youtube.com",
+    "www.youtube.com",
+    "mail.google.com",
+    "docs.google.com",
+    "drive.google.com"
+  ],
+  "extractRules": [
+    {
+      "host": "github.com",
+      "pattern": "^/[^/]+/([^/?#]+)"
+    },
+    {
+      "host": "gitlab.com",
+      "pattern": "^/[^/]+/([^/?#]+)"
+    },
+    {
+      "host": "bitbucket.org",
+      "pattern": "^/[^/]+/([^/?#]+)"
+    }
+  ],
+  "stripSuffixes": [
+    "CDK",
+    "Model",
+    "Client",
+    "Lambda",
+    "Api",
+    "API",
+    "Service",
+    "Tests",
+    "Test",
+    "Config",
+    "App",
+    "UI",
+    "Web"
+  ],
+  "fixedHostGroups": [],
+  "projects": []
+}

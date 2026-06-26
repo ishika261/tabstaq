@@ -1,0 +1,16 @@
+{
+  "_app": "Tabstaq",
+  "_version": 1,
+  "autoGroup": false,
+  "collapseOnGroup": true,
+  "minGroupSize": 2,
+  "autoEmoji": false,
+  "customKeywords": [],
+  "colorMap": {},
+  "emojiMap": {},
+  "excludedHosts": [],
+  "extractRules": [],
+  "stripSuffixes": [],
+  "fixedHostGroups": [],
+  "projects": []
+}

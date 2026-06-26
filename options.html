@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg: #f5f5f6;
+      --card: #ffffff;
+      --border: #e4e4e8;
+      --text: #18181b;
+      --muted: #6e6e76;
+      --faint: #9a9aa2;
+      --ink: #18181b;
+      --accent: #e8821e;
+      --accent-soft: #fdf0dd;
+      --code: #eeeef1;
+      --radius: 14px;
+      --font: -apple-system, "SF Pro Text", "Inter", Segoe UI, Roboto, sans-serif;
+      --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #161618; --card: #1f1f22; --border: #2e2e33;
+        --text: #ededef; --muted: #a0a0a8; --faint: #76767e; --ink: #ededef;
+        --accent: #f59e0b; --accent-soft: #3a2e18; --code: #28282c;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: var(--font); font-size: 15px; line-height: 1.55;
+      margin: 0; color: var(--text); background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Two-pane shell */
+    .shell { display: grid; grid-template-columns: 244px 1fr; min-height: 100vh; }
+
+    /* Left sidebar */
+    aside {
+      position: sticky; top: 0; align-self: start; height: 100vh;
+      padding: 24px 16px; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 4px 12px 20px; }
+    .mark { width: 30px; height: 30px; position: relative; flex: none; }
+    .mark span { position: absolute; width: 17px; height: 15px; border-radius: 4px; }
+    .mark span:nth-child(1) { left: 0;   top: 11px; background: #fae0aa; }
+    .mark span:nth-child(2) { left: 5px; top: 6px;  background: #f5b95a; }
+    .mark span:nth-child(3) { left: 11px; top: 0;   background: #e8821e; }
+    .mark span:nth-child(3)::before {
+      content: ""; position: absolute; left: 3px; top: -3px;
+      width: 7px; height: 4px; border-radius: 2px 2px 0 0; background: #e8821e;
+    }
+    .brand b { font-size: 17px; font-weight: 650; letter-spacing: -.3px; }
+    nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 9px; cursor: pointer;
+      color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 550;
+    }
+    nav a .ico { width: 17px; height: 17px; vertical-align: 0; }
+    nav a:hover { background: var(--card); color: var(--text); }
+    nav a.active { background: var(--accent-soft); color: var(--accent); }
+    .side-foot { margin-top: auto; padding: 12px; text-align: center; }
+    .coffee-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 8px 12px; border-radius: 9px; font-size: 13px; font-weight: 550;
+      color: var(--muted); text-decoration: none; transition: background .12s, color .12s;
+    }
+    .coffee-btn:hover { background: var(--card); color: var(--text); }
+    .coffee-btn .cup { font-size: 14px; }
+    .made { text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+    .made .heart { color: #e5645a; }
+    .made a { color: var(--muted); text-decoration: none; font-weight: 600; }
+    .made a:hover { color: var(--accent); }
+
+    /* Right content */
+    main { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Sticky TOP toolbar — all actions live here */
+    .toolbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 40px; border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(12px);
+    }
+    .toolbar h1 { font-size: 18px; font-weight: 650; letter-spacing: -.3px; margin: 0;
+      display: flex; align-items: center; gap: 9px; }
+    .toolbar h1 .ico { width: 19px; height: 19px; color: var(--accent); }
+    .toolbar .spacer { flex: 1; }
+    .btn {
+      font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer;
+      border-radius: 9px; padding: 9px 16px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text);
+      transition: background .12s, border-color .12s, opacity .12s;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--ink); color: var(--card); border-color: var(--ink); }
+    .btn.primary:hover { opacity: .88; color: var(--card); }
+    /* Toast (bottom-center) */
+    #toast {
+      position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+      background: var(--ink); color: var(--card);
+      padding: 11px 18px; border-radius: 11px; font-size: 13.5px; font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18); z-index: 50;
+      opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+      display: flex; align-items: center; gap: 9px; max-width: 80vw;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast .dot { width: 7px; height: 7px; border-radius: 50%; background: #34d17e; flex: none; }
+    #toast.warn .dot { background: #f59e0b; }
+
+    /* Inline line-icons (shared stroke style). */
+    .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
+      stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+
+    /* Custom hover tooltip (native title is slow/unreliable). */
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute; top: calc(100% + 9px); right: 0;
+      background: var(--ink); color: var(--card);
+      font-size: 12px; font-weight: 500; line-height: 1.45; letter-spacing: 0;
+      padding: 9px 12px; border-radius: 10px; width: max-content; max-width: 250px;
+      white-space: normal; text-align: left;
+      border-top: 2px solid var(--accent);
+      box-shadow: 0 6px 22px rgba(0,0,0,.2);
+      opacity: 0; transform: translateY(-3px); pointer-events: none;
+      transition: opacity .14s, transform .14s; z-index: 60;
+    }
+    /* little amber pointer */
+    [data-tip]::before {
+      content: ""; position: absolute; top: calc(100% + 3px); right: 16px;
+      border: 5px solid transparent; border-bottom-color: var(--accent);
+      opacity: 0; transition: opacity .14s; pointer-events: none; z-index: 61;
+    }
+    [data-tip]:hover::after, [data-tip]:hover::before { opacity: 1; }
+    [data-tip]:hover::after { transform: translateY(0); }
+
+    .content { width: 100%; max-width: 880px; margin: 0 auto; padding: 32px 40px 96px; }
+
+    /* ONE outlined panel; sections separated by hairline dividers. */
+    .panel {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    section.card {
+      padding: 26px 30px;
+      border-bottom: 1px solid var(--border);
+      scroll-margin-top: 80px;
+    }
+    section.card:last-child { border-bottom: 0; }
+    section h2 {
+      font-size: 17px; margin: 0 0 4px; font-weight: 650; letter-spacing: -.2px;
+      color: var(--text); display: flex; align-items: center; gap: 9px;
+    }
+    section h2 .ico { width: 18px; height: 18px; color: var(--accent); vertical-align: 0; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+    label { display: block; margin: 18px 0 7px; font-weight: 600; font-size: 14px; }
+    label:first-of-type { margin-top: 0; }
+    textarea {
+      width: 100%; font-family: var(--mono); font-size: 13px;
+      padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg); color: var(--text); resize: vertical; line-height: 1.6;
+    }
+    textarea:focus, input:focus { outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft); }
+    textarea.sm { height: 76px; } textarea.md { height: 108px; }
+    input[type=number] {
+      width: 68px; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 9px; background: var(--bg); color: var(--text);
+      font-family: var(--font); font-size: 14px;
+    }
+    /* Edge-style setting row: title+desc left, control right-aligned. */
+    .setting {
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      padding: 14px 0; border-top: 1px solid var(--border);
+    }
+    .setting:first-of-type { border-top: 0; padding-top: 4px; }
+    .setting .meta { min-width: 0; }
+    .setting .meta .t { font-size: 14.5px; font-weight: 550; }
+    .setting .meta .d { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+    .setting .ctrl { flex: none; }
+
+    /* Toggle switch */
+    .switch { position: relative; display: inline-block; width: 40px; height: 23px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .track {
+      position: absolute; inset: 0; cursor: pointer; border-radius: 999px;
+      background: var(--border); transition: background .16s;
+    }
+    .switch .track::before {
+      content: ""; position: absolute; height: 17px; width: 17px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform .16s;
+      box-shadow: 0 1px 2px rgba(0,0,0,.25);
+    }
+    .switch input:checked + .track { background: var(--accent); }
+    .switch input:checked + .track::before { transform: translateX(17px); }
+    .switch input:focus-visible + .track { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+    .hint { color: var(--muted); font-size: 13px; margin: 0 0 3px; line-height: 1.6; }
+    code { background: var(--code); padding: 2px 6px; border-radius: 6px; font-size: 12.5px;
+      font-family: var(--mono); }
+
+    @media (max-width: 720px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; flex-direction: row; flex-wrap: wrap;
+        align-items: center; border-right: 0; border-bottom: 1px solid var(--border); }
+      .brand { padding: 4px 10px; }
+      nav { display: flex; flex-wrap: wrap; }
+      .side-foot { margin: 0; }
+      .toolbar { padding: 14px 20px; }
+      .content { padding: 24px 20px 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">
+        <span class="mark"><span></span><span></span><span></span></span>
+        <b>Tabstaq</b>
+      </div>
+      <nav>
+        <a class="active" data-target="s-behavior">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>Behavior</a>
+        <a data-target="s-look">
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 1 0 0 20 2.5 2.5 0 0 0 2-4 2.5 2.5 0 0 1 2-4h2a4 4 0 0 0 4-4 10 10 0 0 0-10-8z"/></svg>Look &amp; feel</a>
+        <a data-target="s-umbrellas">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 3 12.2V5a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>Keywords</a>
+        <a data-target="s-rules">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M16 14l3 3 4-5" /></svg>Auto-naming rules</a>
+        <a data-target="s-fixed">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/><circle cx="12" cy="12" r="10"/></svg>Site groups</a>
+        <a data-target="s-never">
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M5 5l14 14"/></svg>Never group</a>
+      </nav>
+      <div class="side-foot">
+        <a class="coffee-btn" href="https://www.buymeacoffee.com/akihsi720i" target="_blank" rel="noopener">
+          <span class="cup">☕</span> Buy me a coffee
+        </a>
+        <div class="made">made with <span class="heart">♥</span> by <a href="https://github.com/ishika261" target="_blank" rel="noopener">ishika261</a></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <h1><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5l1.4 2.3a7.6 7.6 0 0 1 2 .8l2.6-.6 1.5 2.6-1.8 2a7.6 7.6 0 0 1 0 2.2l1.8 2-1.5 2.6-2.6-.6a7.6 7.6 0 0 1-2 .8L12 21.5l-1.4-2.3a7.6 7.6 0 0 1-2-.8l-2.6.6L4.5 16.4l1.8-2a7.6 7.6 0 0 1 0-2.2l-1.8-2 1.5-2.6 2.6.6a7.6 7.6 0 0 1 2-.8z"/></svg>Preferences</h1>
+        <span class="spacer"></span>
+        <button class="btn" id="export" data-tip="Save your preferences (rules, keywords, colors) to a JSON file.">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Export</button>
+        <button class="btn" id="import" data-tip="Load preferences from a JSON file. Replaces the form below — review, then Save.">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M12 4v12M8 12l4 4 4-4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Import</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <button class="btn" id="reset" data-tip="Restore the shipped default rules.">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg>Reset</button>
+        <button class="btn primary" id="save">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save changes</button>
+      </div>
+
+      <div class="content">
+        <div class="panel">
+        <section class="card" id="s-behavior">
+          <h2><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>Behavior</h2>
+          <p class="sub">When and how groups form.</p>
+          <div class="setting">
+            <div class="meta">
+              <div class="t">Auto-group tabs as they load</div>
+              <div class="d">Re-run grouping automatically when a tab finishes loading.</div>
+            </div>
+            <div class="ctrl">
+              <label class="switch"><input type="checkbox" id="autoGroup"><span class="track"></span></label>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="meta">
+              <div class="t">Collapse groups after grouping</div>
+              <div class="d">Fold each group closed to keep the tab strip tidy.</div>
+            </div>
+            <div class="ctrl">
+              <label class="switch"><input type="checkbox" id="collapseOnGroup"><span class="track"></span></label>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="meta">
+              <div class="t">Minimum tabs to form a group</div>
+              <div class="d">Smaller sets are left ungrouped.</div>
+            </div>
+            <div class="ctrl">
+              <input type="number" id="minGroupSize" min="2" max="10" value="2">
+            </div>
+          </div>
+        </section>
+
+        <section class="card" id="s-look">
+          <h2><svg class="ico" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 1 0 0 20 2.5 2.5 0 0 0 2-4 2.5 2.5 0 0 1 2-4h2a4 4 0 0 0 4-4 10 10 0 0 0-10-8z"/></svg>Look &amp; feel</h2>
+          <p class="sub">Decorate groups with emojis and colors.</p>
+          <div class="setting">
+            <div class="meta">
+              <div class="t">Auto-add an emoji to each group</div>
+              <div class="d">Assign a deterministic emoji to every group label.</div>
+            </div>
+            <div class="ctrl">
+              <label class="switch"><input type="checkbox" id="autoEmoji"><span class="track"></span></label>
+            </div>
+          </div>
+          <label for="emojiMap">Pin emojis &nbsp;<code>Name = 🚀</code></label>
+          <textarea id="emojiMap" class="sm" placeholder="Frontend = 🎨&#10;Backend = ⚙️&#10;Docs = 📘"></textarea>
+          <label for="colors">Pin colors &nbsp;<code>Name = color</code></label>
+          <div class="hint">grey · blue · red · yellow · green · pink · purple · cyan · orange. Others auto-assigned.</div>
+          <textarea id="colors" class="sm" placeholder="Frontend = blue&#10;Backend = green"></textarea>
+        </section>
+
+        <section class="card" id="s-umbrellas">
+          <h2><svg class="ico" viewBox="0 0 24 24"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 3 12.2V5a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>Keywords</h2>
+          <p class="sub">Group any tabs that mention a word you choose — even across different sites.</p>
+          <label for="kw">Keywords (one per line)</label>
+          <div class="hint">Any tab whose URL or title contains the keyword joins a group of that name. Takes priority over the rules below — great for project names.</div>
+          <textarea id="kw" class="md" placeholder="project-aurora&#10;q3-launch"></textarea>
+        </section>
+
+        <section class="card" id="s-rules">
+          <h2><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M16 14l3 3 4-5"/></svg>Auto-naming rules</h2>
+          <p class="sub">Pull a group name automatically out of a tab's URL.</p>
+          <label for="extractRules">One per line &nbsp;<code>host | regex</code></label>
+          <div class="hint">
+            On a matching <code>host</code>, the <code>regex</code> runs against path+query; capture group 1 is the name. First match wins.<br>
+            <code>github.com | ^/[^/]+/([^/?#]+)</code><br>
+            <code>jira.company.com | /browse/([A-Z]+)-</code>
+          </div>
+          <textarea id="extractRules" class="md"></textarea>
+          <label for="stripSuffixes">Strip suffixes</label>
+          <div class="hint">Peeled off a name so related items merge: <code>MyAppCDK</code> → <code>MyApp</code>. Leave empty to disable.</div>
+          <textarea id="stripSuffixes" class="md"></textarea>
+        </section>
+
+        <section class="card" id="s-fixed">
+          <h2><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>Site groups</h2>
+          <p class="sub">Force every tab on a host into one named group.</p>
+          <label for="fixedHostGroups">One per line &nbsp;<code>host = GroupName</code></label>
+          <div class="hint">e.g. <code>mail.google.com = Email</code></div>
+          <textarea id="fixedHostGroups" class="sm"></textarea>
+        </section>
+
+        <section class="card" id="s-never">
+          <h2><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M5 5l14 14"/></svg>Never group</h2>
+          <p class="sub">Hosts left untouched.</p>
+          <label for="excludedHosts">Excluded hosts (exact hostname)</label>
+          <textarea id="excludedHosts" class="md"></textarea>
+        </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast"><span class="dot"></span><span id="toastMsg"></span></div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
