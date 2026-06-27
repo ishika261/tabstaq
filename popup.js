@@ -151,7 +151,12 @@ async function act(type, label) {
   $('status').textContent = '…';
   const res = await ask(type);
   if (res.error) { $('status').textContent = 'Error: ' + res.error; return; }
-  if (res.grouped !== undefined) {
+  if (res.moved !== undefined) {
+    $('status').textContent = res.groups
+      ? `Grouped ${res.grouped} tabs into ${res.groups} group${res.groups > 1 ? 's' : ''}` +
+        (res.moved ? ` (pulled ${res.moved} from other windows).` : '.')
+      : 'No groupable tabs found.';
+  } else if (res.grouped !== undefined) {
     $('status').textContent = res.groups
       ? `Grouped ${res.grouped} tabs into ${res.groups} group${res.groups > 1 ? 's' : ''}.`
       : 'No groupable tabs found.';
@@ -169,6 +174,7 @@ async function act(type, label) {
 }
 
 $('group').addEventListener('click', () => act('group'));
+$('consolidate').addEventListener('click', () => act('consolidate'));
 $('ungroup').addEventListener('click', () => act('ungroup'));
 $('collapse').addEventListener('click', () => act('collapse', 'Collapsed'));
 $('expand').addEventListener('click', () => act('expand', 'Expanded'));

@@ -30,6 +30,9 @@
     "expand-groups": {
       "suggested_key": { "default": "Ctrl+Shift+7", "mac": "MacCtrl+E" },
       "description": "Expand all tab groups"
+    },
+    "group-windows": {
+      "description": "Group tabs across all windows into the current one"
     }
   },
   "action": {

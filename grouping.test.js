@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { extractId, fixedGroup, normalizeName } from './identify.js';
-import { classifyTab, computeBuckets, buildUmbrellas } from './grouping.js';
+import { classifyTab, computeBuckets, buildUmbrellas, splitBuckets } from './grouping.js';
 
 // A small generic config used across tests.
 const CONFIG = {
@@ -238,4 +238,78 @@ test('computeBuckets: keyword clubs differently-named tabs together', () => {
   const b = computeBuckets(tabs, umb, CONFIG, 2);
   assert.deepEqual(names(b), ['Falcon']);
   assert.equal(b.get('Falcon').length, 2);
+});
+
+// --- grouping.js: splitBuckets (cross-window "Group across windows") --------
+// splitBuckets decides which groups the consolidate action touches: ONLY those
+// split across windows (some tabs in the target window AND some outside it). A
+// bucket living wholly in one window is left untouched. TARGET = window 1.
+
+const mkBuckets = (entries) => new Map(entries); // [name, tab[]][] -> Map
+
+test('splitBuckets: a group spanning two windows is selected, foreign tabs listed', () => {
+  const buckets = mkBuckets([
+    ['Checkout', [
+      { id: 1, windowId: 1 },          // local
+      { id: 2, windowId: 2 },          // foreign
+      { id: 3, windowId: 2 }           // foreign
+    ]]
+  ]);
+  const splits = splitBuckets(buckets, 1);
+  assert.equal(splits.length, 1);
+  assert.equal(splits[0].name, 'Checkout');
+  assert.deepEqual(splits[0].foreign.map((t) => t.id), [2, 3]);
+  assert.equal(splits[0].tabs.length, 3); // full bucket retained
+});
+
+test('splitBuckets: a group living entirely in another window is NOT touched', () => {
+  // This is the reported bug: a wholly-foreign group must stay put.
+  const buckets = mkBuckets([
+    ['Reports', [
+      { id: 10, windowId: 2 },
+      { id: 11, windowId: 2 }
+    ]]
+  ]);
+  assert.deepEqual(splitBuckets(buckets, 1), []);
+});
+
+test('splitBuckets: a group living entirely in the target window is NOT touched', () => {
+  const buckets = mkBuckets([
+    ['Local', [
+      { id: 20, windowId: 1 },
+      { id: 21, windowId: 1 }
+    ]]
+  ]);
+  assert.deepEqual(splitBuckets(buckets, 1), []);
+});
+
+test('splitBuckets: the reported scenario — only the split group consolidates', () => {
+  // Window 1 (target) has a lone Checkout tab; window 2 has 3 other groups,
+  // one of which (Checkout) matches. Only Checkout should be selected; the
+  // two wholly-foreign groups (Reports, Billing) stay where they are.
+  const buckets = mkBuckets([
+    ['Checkout', [{ id: 1, windowId: 1 }, { id: 2, windowId: 2 }]], // split
+    ['Reports',  [{ id: 3, windowId: 2 }, { id: 4, windowId: 2 }]], // foreign-only
+    ['Billing',  [{ id: 5, windowId: 2 }, { id: 6, windowId: 2 }]]  // foreign-only
+  ]);
+  const splits = splitBuckets(buckets, 1);
+  assert.deepEqual(splits.map((s) => s.name), ['Checkout']);
+  assert.deepEqual(splits[0].foreign.map((t) => t.id), [2]);
+});
+
+test('splitBuckets: tabs spread across three windows all count as foreign', () => {
+  const buckets = mkBuckets([
+    ['Wide', [
+      { id: 1, windowId: 1 },   // local
+      { id: 2, windowId: 2 },   // foreign
+      { id: 3, windowId: 3 }    // foreign (different other window)
+    ]]
+  ]);
+  const splits = splitBuckets(buckets, 1);
+  assert.equal(splits.length, 1);
+  assert.deepEqual(splits[0].foreign.map((t) => t.id), [2, 3]);
+});
+
+test('splitBuckets: empty input yields nothing', () => {
+  assert.deepEqual(splitBuckets(new Map(), 1), []);
 });

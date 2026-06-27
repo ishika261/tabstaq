@@ -82,4 +82,21 @@ function buildUmbrellas(customKeywords, config) {
     .map((t) => ({ token: t, lower: t.toLowerCase() }));
 }
 
-export { classifyTab, computeBuckets, buildUmbrellas };
+// From all computed buckets, keep only the ones that are SPLIT across windows:
+// a bucket with at least one tab in the target window AND at least one tab in
+// another window. Used by the cross-window "Group across windows" action so it
+// only relocates tabs that genuinely need consolidating — a group living wholly
+// in one window (target or elsewhere) is left untouched. Each tab is expected to
+// carry a `windowId`. Returns [{ name, tabs, foreign }] where `foreign` is the
+// subset of `tabs` that lives outside the target window (the tabs to move).
+function splitBuckets(buckets, targetWindowId) {
+  const out = [];
+  for (const [name, tabs] of buckets) {
+    const foreign = tabs.filter((t) => t.windowId !== targetWindowId);
+    const hasLocal = tabs.some((t) => t.windowId === targetWindowId);
+    if (hasLocal && foreign.length > 0) out.push({ name, tabs, foreign });
+  }
+  return out;
+}
+
+export { classifyTab, computeBuckets, buildUmbrellas, splitBuckets };

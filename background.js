@@ -16,7 +16,7 @@
 // All matching is config-driven (identify.js); nothing is hardcoded.
 
 import { DEFAULT_CONFIG } from './identify.js';
-import { computeBuckets, buildUmbrellas } from './grouping.js';
+import { computeBuckets, buildUmbrellas, splitBuckets } from './grouping.js';
 
 // Keys under which the editable config lives in chrome.storage.sync.
 const CONFIG_KEYS = ['excludedHosts', 'extractRules', 'stripSuffixes', 'fixedHostGroups', 'projects'];
@@ -185,6 +185,71 @@ async function groupTabs(windowId) {
   }
 
   return { grouped, groups: groupCount };
+}
+
+// Cross-window consolidate: gather every groupable tab from ALL normal windows
+// into the target window, then group them there. This is the only way to get
+// "cross-window" grouping, since a native tab group can't span windows.
+// Intrusive by design (it relocates tabs between windows), so it's a distinct,
+// explicit action — never the default Group.
+//
+// SCOPE: we only touch a group that is *split across windows* — it has some
+// tabs in the target window AND some elsewhere. Those stragglers are pulled
+// home and the group is (re)formed here. A group that lives entirely in another
+// window is NOT impacted and is left exactly where it is (not moved, not
+// re-colored, not collapsed). This keeps the action surgical: only the groups
+// that genuinely span windows are consolidated; unrelated windows stay intact.
+async function consolidateAll(windowId) {
+  const { customKeywords, minGroupSize, colorMap, emojiMap, autoEmoji, collapseOnGroup } = await getSettings();
+  const config = await getConfig();
+  const winId = await targetWindowId(windowId);
+  const umbrellas = buildUmbrellas(customKeywords, config);
+
+  // All tabs across all normal windows.
+  const allTabs = await chrome.tabs.query({ windowType: 'normal' });
+
+  // Decide groups over the whole set. skipGrouped=false so tabs already grouped
+  // in OTHER windows are considered (we may need to pull them in). existing
+  // groups in the target window let single tabs join by name.
+  const existingGroups = await chrome.tabGroups.query({ windowId: winId });
+  const groupByName = new Map(existingGroups.map((g) => [plainTitle(g.title), g.id]));
+  const existingNames = new Set(groupByName.keys());
+  const bucketsTabs = computeBuckets(allTabs, umbrellas, config, minGroupSize, false, existingNames);
+
+  // Keep only the SPLIT buckets: present both in the target window and outside
+  // it. Buckets living entirely in one window (target or elsewhere) are skipped.
+  // (splitBuckets is a pure function in grouping.js, covered by unit tests.)
+  const splits = splitBuckets(bucketsTabs, winId);
+
+  const liveNames = splits.map((b) => b.name);
+  const colors = assignColors(liveNames, colorMap);
+
+  let grouped = 0;
+  let movedTabs = 0;
+
+  for (const { name, tabs: arr, foreign } of splits) {
+    // Move the foreign tabs into the target window first; chrome.tabs.group()
+    // requires all tabs to share one window.
+    const foreignIds = foreign.map((t) => t.id);
+    await chrome.tabs.move(foreignIds, { windowId: winId, index: -1 });
+    movedTabs += foreignIds.length;
+
+    const tabIds = arr.map((t) => t.id);
+    const color = colors.get(name);
+    const title = labelFor(name, emojiMap, autoEmoji);
+    let groupId;
+    if (groupByName.has(name)) {
+      groupId = await chrome.tabs.group({ groupId: groupByName.get(name), tabIds });
+    } else {
+      groupId = await chrome.tabs.group({ tabIds });
+    }
+    await chrome.tabGroups.update(groupId, { title, color, collapsed: collapseOnGroup });
+    grouped += tabIds.length;
+  }
+
+  // Bring the consolidated window forward.
+  await chrome.windows.update(winId, { focused: true });
+  return { grouped, groups: liveNames.length, moved: movedTabs };
 }
 
 // Dry-run: compute what groups WOULD be created, for the popup preview.
@@ -375,6 +440,7 @@ chrome.action.onClicked.addListener((tab) => { groupTabs(tab.windowId); });
 chrome.commands.onCommand.addListener(async (command) => {
   const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
   if (command === 'group-tabs') groupTabs(win.id);
+  else if (command === 'group-windows') consolidateAll(win.id);
   else if (command === 'ungroup-tabs') ungroupAll(win.id);
   else if (command === 'collapse-groups') setGroupsCollapsed(win.id, true);
   else if (command === 'expand-groups') setGroupsCollapsed(win.id, false);
@@ -384,6 +450,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try {
       if (msg.type === 'group') sendResponse(await groupTabs(msg.windowId));
+      else if (msg.type === 'consolidate') sendResponse(await consolidateAll(msg.windowId));
       else if (msg.type === 'ungroup') sendResponse(await ungroupAll(msg.windowId));
       else if (msg.type === 'plan') sendResponse({ plan: await planGroups(msg.windowId) });
       else if (msg.type === 'collapse') sendResponse(await setGroupsCollapsed(msg.windowId, true));

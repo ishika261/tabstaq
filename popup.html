@@ -23,57 +23,61 @@
     }
     * { box-sizing: border-box; }
     body {
-      font: 13px/1.5 -apple-system, "SF Pro Text", Segoe UI, Roboto, sans-serif;
-      width: 312px; margin: 0; background: var(--bg); color: var(--text);
+      font: 14px/1.5 -apple-system, "SF Pro Text", Segoe UI, Roboto, sans-serif;
+      width: 412px; margin: 0; background: var(--bg); color: var(--text);
       -webkit-font-smoothing: antialiased;
     }
     header {
-      display: flex; align-items: center; gap: 9px;
-      padding: 14px 16px 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 18px 13px;
     }
-    .mark { width: 22px; height: 22px; position: relative; flex: none; }
-    .mark i { position: absolute; width: 13px; height: 11px; border-radius: 3px; }
-    .mark i:nth-child(1) { left: 0;  top: 8px; background: #fae0aa; }
-    .mark i:nth-child(2) { left: 4px; top: 4px; background: #f5b95a; }
-    .mark i:nth-child(3) { left: 8px; top: 0;  background: #e8821e; }
+    .mark { width: 25px; height: 25px; position: relative; flex: none; }
+    .mark i { position: absolute; width: 15px; height: 12px; border-radius: 3px; }
+    .mark i:nth-child(1) { left: 0;  top: 9px; background: #fae0aa; }
+    .mark i:nth-child(2) { left: 5px; top: 5px; background: #f5b95a; }
+    .mark i:nth-child(3) { left: 9px; top: 0;  background: #e8821e; }
     .mark i:nth-child(3)::before {
       content: ""; position: absolute; left: 2px; top: -2px;
-      width: 6px; height: 3px; border-radius: 2px 2px 0 0; background: #e8821e;
+      width: 7px; height: 3px; border-radius: 2px 2px 0 0; background: #e8821e;
     }
-    header h1 { font-size: 14px; margin: 0; font-weight: 650; letter-spacing: -.2px; flex: 1; }
-    .body { padding: 0 14px 12px; }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: -.2px; flex: 1; }
+    .body { padding: 0 16px 14px; }
 
     input#q {
-      width: 100%; padding: 9px 11px; border-radius: var(--radius);
+      width: 100%; padding: 10px 12px; border-radius: var(--radius);
       border: 1px solid var(--border); background: var(--surface);
-      color: var(--text); font-size: 13px;
+      color: var(--text); font-size: 14px;
     }
     input#q::placeholder { color: var(--muted); }
     input#q:focus { outline: none; border-color: var(--accent); background: var(--bg); }
-    #results { max-height: 216px; overflow-y: auto; margin-top: 6px; }
+    #results { max-height: 248px; overflow-y: auto; margin-top: 7px; }
     .tab {
-      display: flex; align-items: center; gap: 9px; padding: 7px 9px;
-      border-radius: 7px; cursor: pointer;
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+      border-radius: 8px; cursor: pointer;
     }
     .tab:hover, .tab.sel { background: var(--surface); }
-    .tab img { width: 15px; height: 15px; flex: none; border-radius: 3px; }
+    .tab img { width: 16px; height: 16px; flex: none; border-radius: 3px; }
     .tab .ti { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tab .host { color: var(--muted); font-size: 11px; }
+    .tab .host { color: var(--muted); font-size: 12px; }
 
-    .label { font-size: 11px; font-weight: 600; letter-spacing: .3px;
-      text-transform: uppercase; color: var(--muted); margin: 14px 0 7px; }
-    #preview { margin-top: 12px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .label { font-size: 11.5px; font-weight: 600; letter-spacing: .3px;
+      text-transform: uppercase; color: var(--muted); margin: 15px 0 8px; }
+    #preview { margin-top: 13px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
     .chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 5px 4px 10px; border-radius: 7px;
-      font-size: 12px; font-weight: 550;
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 6px 5px 11px; border-radius: 8px;
+      font-size: 13px; font-weight: 550;
       background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      max-width: 100%;
     }
     .chip { cursor: pointer; overflow: hidden; }
-    .chip .swatch { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-    .chip .n { background: rgba(0,0,0,.06); border-radius: 5px; padding: 1px 6px;
-      font-size: 11px; color: var(--muted); }
+    .chip .swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    /* Long names truncate so the count + × always stay visible. */
+    .chip .cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .chip .swatch, .chip .n, .chip .add, .chip .x { flex: none; }
+    .chip .n { background: rgba(0,0,0,.06); border-radius: 5px; padding: 1px 7px;
+      font-size: 12px; color: var(--muted); }
     @media (prefers-color-scheme: dark) { .chip .n { background: rgba(255,255,255,.08); } }
     /* "+N tabs would join" badge, and a dashed border for not-yet-created groups */
     .chip .add { background: var(--accent); color: #fff; border-radius: 5px;
@@ -83,52 +87,85 @@
     .chip .x {
       display: inline-flex; align-items: center; justify-content: center;
       cursor: pointer; background: #e5645a; color: #fff; border: 0;
-      font-size: 12px; line-height: 1; border-radius: 5px;
-      width: 0; height: 16px; padding: 0; margin-left: 0;
+      font-size: 13px; line-height: 1; border-radius: 5px;
+      width: 0; height: 18px; padding: 0; margin-left: 0;
       opacity: 0; overflow: hidden;
       transition: width .16s ease, opacity .16s ease, margin-left .16s ease;
     }
-    .chip.revealed .x { width: 16px; opacity: 1; margin-left: 3px; }
+    .chip.revealed .x { width: 18px; opacity: 1; margin-left: 3px; }
     .chip .x:hover { filter: brightness(1.08); }
 
     button {
       border: 0; cursor: pointer; font-family: inherit;
       transition: background .12s, border-color .12s, color .12s;
     }
-    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin-top: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-top: 13px; }
     .grid button {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 11px 4px 8px; background: var(--bg); color: var(--text);
-      border: 1px solid var(--border); border-radius: 11px;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      padding: 12px 2px 9px; background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
     }
-    .grid button svg { width: 18px; height: 18px; stroke: currentColor; fill: none;
+    .grid button svg { width: 20px; height: 20px; stroke: currentColor; fill: none;
       stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .grid button .cap { font-size: 10.5px; font-weight: 550; color: var(--muted); letter-spacing: .1px; }
     .grid button:hover { background: var(--surface); border-color: var(--text); }
     .grid button:hover .cap { color: var(--text); }
+    /* Instant custom tooltip (native title is slow + clipped in popups).
+       Fixed dark bubble in both themes so it never inverts to gray. */
+    .grid { position: relative; overflow: visible; }
+    .grid button { position: relative; }
+    .grid button[data-tip]::after {
+      content: attr(data-tip); position: absolute; top: calc(100% + 9px); left: 50%;
+      transform: translateX(-50%) translateY(-3px);
+      background: #1f1f23; color: #fff; font-size: 11.5px; font-weight: 550;
+      line-height: 1.3; letter-spacing: .1px; white-space: nowrap;
+      padding: 6px 9px; border-radius: 7px; pointer-events: none;
+      opacity: 0; transition: opacity .12s ease, transform .12s ease; z-index: 20;
+      box-shadow: 0 4px 14px rgba(0,0,0,.22);
+    }
+    .grid button[data-tip]::before {
+      content: ""; position: absolute; top: calc(100% + 4px); left: 50%;
+      transform: translateX(-50%) translateY(-3px);
+      border: 5px solid transparent; border-bottom-color: #1f1f23;
+      opacity: 0; transition: opacity .12s ease, transform .12s ease; z-index: 20;
+    }
+    .grid button[data-tip]:hover::after,
+    .grid button[data-tip]:hover::before {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+    /* Edge tiles: nudge the tooltip inward so it doesn't clip off the popup. */
+    .grid button:first-child[data-tip]::after { left: 0; transform: translateY(-3px); }
+    .grid button:first-child[data-tip]:hover::after { transform: translateY(0); }
+    .grid button:last-child[data-tip]::after { left: auto; right: 0; transform: translateY(-3px); }
+    .grid button:last-child[data-tip]:hover::after { transform: translateY(0); }
+    /* Group windows: cross-window move is intrusive, so tint it amber on hover
+       to set it apart from the plain in-window tiles. */
+    #consolidate:hover { border-color: var(--accent); color: var(--accent); }
+    #consolidate:hover .cap { color: var(--accent); }
     /* Group = primary action: subtle accent fill, still a tile. */
     #group { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
     #group .cap { color: var(--accent); }
     #group:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
     #group:hover .cap { color: #fff; }
-    #dedupe:hover { border-color: #e5645a; color: #e5645a; }
-    #dedupe:hover .cap { color: #e5645a; }
+    #dedupe:hover { background: #e8746f; border-color: #e8746f; color: #fff; }
+    #dedupe:hover .cap { color: #fff; }
 
-    #status { margin-top: 10px; color: var(--muted); min-height: 16px; font-size: 12px; }
-    .empty { color: var(--muted); font-size: 12px; }
+    #status { margin-top: 11px; color: var(--muted); min-height: 17px; font-size: 13px; }
+    .empty { color: var(--muted); font-size: 13px; }
 
     footer {
-      display: flex; align-items: center; justify-content: center; gap: 22px;
-      padding: 11px 16px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 12px 18px; border-top: 1px solid var(--border);
     }
-    footer a { color: var(--muted); cursor: pointer; font-size: 12px; text-decoration: none;
-      display: inline-flex; align-items: center; gap: 6px; }
-    footer a:hover { color: var(--accent); }
-    .fico { width: 13px; height: 13px; stroke: currentColor; fill: none;
+    footer a { color: var(--muted); cursor: pointer; font-size: 14px; font-weight: 550;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border); }
+    footer a:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+    .fico { width: 16px; height: 16px; stroke: currentColor; fill: none;
       stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .credit {
-      text-align: center; font-size: 11.5px; color: var(--muted);
-      padding: 9px 16px 11px;
+      text-align: center; font-size: 12.5px; color: var(--muted);
+      padding: 10px 18px 12px;
     }
     .credit .heart { color: #e5645a; }
     .credit a { color: var(--muted); text-decoration: none; font-weight: 600; }
@@ -136,30 +173,30 @@
 
     /* Shortcuts panel */
     #shortcuts {
-      padding: 10px 16px 12px; border-top: 1px solid var(--border);
+      padding: 12px 18px 14px; border-top: 1px solid var(--border);
     }
     #shortcuts.hidden { display: none; }
     .sc-head { display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 6px; }
-    .sc-head span { font-size: 11px; font-weight: 600; letter-spacing: .4px;
+      margin-bottom: 7px; }
+    .sc-head span { font-size: 11.5px; font-weight: 600; letter-spacing: .4px;
       text-transform: uppercase; color: var(--muted); }
     #scClose {
       border: 0; background: transparent; color: var(--muted); cursor: pointer;
-      font-size: 14px; line-height: 1; padding: 4px 6px; border-radius: 6px;
+      font-size: 15px; line-height: 1; padding: 4px 7px; border-radius: 6px;
     }
     #scClose:hover { background: var(--surface); color: var(--text); }
     #scToggle.active { color: var(--accent); }
     .sc-row { display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 0; font-size: 12px; color: var(--text); }
+      padding: 5px 0; font-size: 13px; color: var(--text); }
     .sc-row .lbl { color: var(--muted); }
     kbd {
-      font-family: var(--font, inherit); font-size: 11px; font-weight: 600;
+      font-family: var(--font, inherit); font-size: 12px; font-weight: 600;
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 5px; padding: 2px 6px; color: var(--text);
+      border-radius: 5px; padding: 2px 7px; color: var(--text);
     }
     kbd.unset { color: var(--accent); cursor: pointer; border-style: dashed; background: transparent; }
     kbd.unset:hover { background: var(--accent-soft); }
-    .sc-customize { display: block; margin-top: 8px; font-size: 11.5px;
+    .sc-customize { display: block; margin-top: 9px; font-size: 12.5px;
       color: var(--accent); cursor: pointer; text-decoration: none; }
     .sc-customize:hover { text-decoration: underline; }
   </style>
@@ -176,25 +213,29 @@
     <div id="preview"></div>
 
     <div class="grid">
-      <button id="group" title="Group tabs by project (⌘⇧0)">
+      <button id="group" data-tip="Group by rules">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/></svg>
         <span class="cap">Group</span>
       </button>
-      <button id="ungroup" title="Ungroup all tabs (⌘⇧9)">
+      <button id="ungroup" data-tip="Ungroup tabs">
         <svg viewBox="0 0 24 24"><path d="M5 5h5v5H5zM14 14h5v5h-5z"/><path d="M14 5h5M19 5v5M5 14v5M5 19h5"/></svg>
         <span class="cap">Ungroup</span>
       </button>
-      <button id="dedupe" title="Close duplicate tabs">
+      <button id="dedupe" data-tip="Close duplicate tabs">
         <svg viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="2"/><path d="M9 19h9a2 2 0 0 0 2-2V9"/></svg>
         <span class="cap">Dedupe</span>
       </button>
-      <button id="collapse" title="Collapse all groups (⌘⇧8)">
+      <button id="collapse" data-tip="Collapse groups">
         <svg viewBox="0 0 24 24"><path d="M8 4l4 4 4-4M8 20l4-4 4 4"/></svg>
         <span class="cap">Collapse</span>
       </button>
-      <button id="expand" title="Expand all groups (⌘⇧7)">
+      <button id="expand" data-tip="Expand groups">
         <svg viewBox="0 0 24 24"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
         <span class="cap">Expand</span>
+      </button>
+      <button id="consolidate" data-tip="Group across windows">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="8" y="14" width="8" height="6" rx="1.5"/><path d="M12 11.5v2"/></svg>
+        <span class="cap">Windows</span>
       </button>
     </div>
     <div id="status"></div>
@@ -206,6 +247,7 @@
     </div>
     <div class="sc-row"><span class="lbl">Open Tabstaq</span><kbd data-key="_execute_action"></kbd></div>
     <div class="sc-row"><span class="lbl">Group tabs</span><kbd data-key="group-tabs"></kbd></div>
+    <div class="sc-row"><span class="lbl">Group windows</span><kbd data-key="group-windows"></kbd></div>
     <div class="sc-row"><span class="lbl">Ungroup all</span><kbd data-key="ungroup-tabs"></kbd></div>
     <div class="sc-row"><span class="lbl">Collapse all</span><kbd data-key="collapse-groups"></kbd></div>
     <div class="sc-row"><span class="lbl">Expand all</span><kbd data-key="expand-groups"></kbd></div>
